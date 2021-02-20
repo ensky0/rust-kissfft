@@ -309,6 +309,8 @@ static
 void kf_factor(int n,int * facbuf)
 {
     int p=4;
+    int stages=0;
+    int tmp, nbak = n;
     double floor_sqrt;
     floor_sqrt = floor( sqrt((double)n) );
 
@@ -324,9 +326,27 @@ void kf_factor(int n,int * facbuf)
                 p = n;          /* no more factors, skip to end */
         }
         n /= p;
-        *facbuf++ = p;
-        *facbuf++ = n;
+        facbuf[2*stages] = p;
+        if (p==2 && stages > 1)
+        {
+            facbuf[2*stages] = 4;
+            facbuf[2] = 2;
+        }
+        stages++;
     } while (n > 1);
+
+    n = nbak;
+    for (int i = 0; i < stages/2; i++)
+    {
+        tmp = facbuf[2*i];
+        facbuf[2*i] = facbuf[2*(stages-i-1)];
+        facbuf[2*(stages-i-1)] = tmp;
+    }
+    for (int i = 0; i < stages; i++)
+    {
+        n /= facbuf[2*i];
+        facbuf[2*i+1] = n;
+    }
 }
 
 /*
@@ -363,6 +383,8 @@ kiss_fft_cfg kiss_fft_alloc(int nfft,int inverse_fft,void * mem,size_t * lenmem 
         }
 
         kf_factor(nfft,st->factors);
+        //for (int i = 0; i < 2*MAXFACTORS; i++)
+        //    printf("factor %d %d\n", i, st->factors[i]);
     }
     return st;
 }
